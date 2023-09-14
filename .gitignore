@@ -1,0 +1,8 @@
+*.sw*
+*.lck
+*-backups
+fp-info-cache
+*.FCStd1
+production
+\#auto_saved_files\#
+_autosave*
