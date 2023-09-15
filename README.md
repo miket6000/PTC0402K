@@ -1,5 +1,5 @@
 # PTC0402K
-A fully isolated (channel to channel and channel to input) four channel, two output programmable temperature controller.
+A fully isolated (channel to channel and channel to input) four channel, two output programmable temperature controller and logger.
 
 ![3d_top_TemperatureLogger](https://github.com/miket6000/PTC0402K/assets/7330990/e91ebdf5-a59f-4036-9017-cadffed45999)
 
