@@ -9,8 +9,8 @@
     (date "2023-09-13")
     (rev "1.0")
     (company "Blueskin Design")
-    (comment 1 "Licensed Creative Commons")
-    (comment 2 "Designed by Michael Turner")
+    (comment 1 "License: CERN-OHL-W")
+    (comment 2 "Designer: Michael Turner")
   )
 
   (lib_symbols
