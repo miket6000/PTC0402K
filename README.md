@@ -17,6 +17,4 @@ Other than the previously mentinoed issue all the hardware appears to work well.
 
 A basic test formware has been written which reads the hot and cold junction temperatures, as well as the thermocouple status and allows them to be read via SCPI. It also allows control of the output relays though no temperature controller or alarms have been written.
 
-There was an annoying issue where libscpi attempted to use snprintf for the float to string conversion but by default the printf libraries used by Cube-MX have floating point support disabled (this was a PITA to debug). Enabling floating point support in the printf libraries caused the code size to explode and the image no longer fit within the flash so I'm currently using a custom and simplified float to string function hastily stuffed into the scpi-def.c file. I would like to update the entire code base to fixed point math, but that's a project for another day.
-
-
+The math for computing the corrected NIST polynomial based temperatures is all calculated using fixed point math as there is no FPU in the STM32F072. Currently there is a bug somewhere which causes a discontinuity of temperature around 0 degrees C. This bug is clearly in the NIST compensation code, the raw values track temperature as expected.
