@@ -31,15 +31,15 @@
 #include "scpi/scpi.h"
 #include "scpi-def.h"
 #include "MAX31855.h"
+#include "fix16.h"
 #include "relay.h"
 
 #define SIZE_OF_FLOAT_TO_STR_BUFFER 16
 
-uint8_t floatToStr(float val, char *buffer) {
-  int16_t num = (int16_t)(val * 10 + 0.5);
-  int16_t first = (num / 10);
-  int16_t second = (int16_t)((num - (first * 10)));
-  uint8_t len = snprintf(buffer, SIZE_OF_FLOAT_TO_STR_BUFFER, "%d.%d", first, second);
+uint8_t fixedPointToStr(FXP_T val, char *buffer) {
+  uint32_t whole = FXP_WHOLE(val);
+  uint32_t fraction = FXP_FRACT(val);
+  uint8_t len = snprintf(buffer, SIZE_OF_FLOAT_TO_STR_BUFFER, "%ld.%.3ld", whole, fraction);
   return len;
 }
 
@@ -47,8 +47,8 @@ static scpi_result_t GetColdJunct(scpi_t * context) {
   int32_t channel;
   char buffer[SIZE_OF_FLOAT_TO_STR_BUFFER];
   SCPI_CommandNumbers(context, &channel, 1, 0);
-  uint8_t len = floatToStr(MAX31855_GetColdTemp((uint8_t)channel), buffer);
-  SCPI_ResultCharacters(context, buffer, len);
+  fix16_to_str(MAX31855_GetColdTemp((uint8_t)channel), buffer, 4);
+  SCPI_ResultCharacters(context, buffer, strlen(buffer));
   return SCPI_RES_OK;
 }
 
@@ -56,8 +56,8 @@ static scpi_result_t GetHotJunct(scpi_t * context) {
   int32_t channel;
   char buffer[SIZE_OF_FLOAT_TO_STR_BUFFER];
   SCPI_CommandNumbers(context, &channel, 1, 0);
-  uint8_t len = floatToStr(MAX31855_GetHotTemp((uint8_t)channel), buffer);
-  SCPI_ResultCharacters(context, buffer, len);
+  fix16_to_str(MAX31855_GetHotTemp((uint8_t)channel), buffer, 2);
+  SCPI_ResultCharacters(context, buffer, strlen(buffer));
   return SCPI_RES_OK;
 }
 

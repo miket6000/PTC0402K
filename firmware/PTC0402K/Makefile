@@ -60,7 +60,11 @@ libscpi/src/minimal.c \
 libscpi/src/parser.c \
 libscpi/src/units.c \
 libscpi/src/utils.c \
-Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_usb.c \
+libfixmath/fix16.c \
+libfixmath/fix16_str.c \
+libfixmath/fract32.c \
+libfixmath/uint32.c \
+rivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_ll_usb.c \
 Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_tim.c \
 Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_tim_ex.c \
 Drivers/STM32F0xx_HAL_Driver/Src/stm32f0xx_hal_pcd.c \
@@ -154,8 +158,8 @@ C_INCLUDES =  \
 -IUSB_DEVICE/Target \
 -IMiddlewares/ST/STM32_USB_Device_Library/Core/Inc \
 -IMiddlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc \
--Ilibscpi/inc
-
+-Ilibscpi/inc \
+-Ilibfixmath
 
 # compile gcc flags
 ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections

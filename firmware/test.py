@@ -24,7 +24,7 @@ write("OUTPUT0 0; output1 0")
 # instrument query
 temps = {}
 while (1):
-    temps["time"] = "{:%Y-%m-%d %H:%M:%S}".format(datetime.now())
+    #temps["time"] = "{:%Y-%m-%d %H:%M:%S}".format(datetime.now())
     for channel in range(0,4):
         c = float(inst.query(f"MEAS:Cold{channel}?"))
         s = int(inst.query(f"MEAS:Stat{channel}?"))
@@ -32,9 +32,10 @@ while (1):
             h = None
         else:
             h = float(inst.query(f"MEAS:Temp{channel}?"))
-
-        temps[channel] = [c, h]
-    print (temps)
+            r = int(inst.query(f"MEAS:RAW{channel}?")[2:],16)
+            print(f"raw:{hex(r)}\tcold:{c}\thot:{h}")
+        #temps[channel] = [c, h]
+    #print (temps)
     time.sleep(1)
 
 #query("MEAS:STAT0?")
