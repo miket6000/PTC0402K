@@ -1,5 +1,6 @@
 import pyvisa
 import time
+import json
 from datetime import datetime
 
 rm = pyvisa.ResourceManager("@py")
@@ -11,33 +12,45 @@ def query(queryString):
     return result
 
 def write(string):
-    print(string, "\n", inst.write(string))
+    inst.write(string)
+    print(string, "\n")
 
 # basic query
 query("*IDN?")
-# infered output channel and write
-write("OUTP 1")
-# explict output channel and write
-write("OUTP1 1")
-# full form channel names, case insensitivity and compound statement
-write("OUTPUT0 0; output1 0")
-# instrument query
-temps = {}
-while (1):
-    #temps["time"] = "{:%Y-%m-%d %H:%M:%S}".format(datetime.now())
-    for channel in range(0,4):
-        c = float(inst.query(f"MEAS:Cold{channel}?"))
-        s = int(inst.query(f"MEAS:Stat{channel}?"))
-        if (s):
-            h = None
-        else:
-            h = float(inst.query(f"MEAS:Temp{channel}?"))
-            r = int(inst.query(f"MEAS:RAW{channel}?")[2:],16)
-            print(f"raw:{hex(r)}\tcold:{c}\thot:{h}")
-        #temps[channel] = [c, h]
-    #print (temps)
-    time.sleep(1)
+## infered output channel and write
+#write("OUTP 1")
+## explict output channel and write
+#write("OUTP1 1")
+## full form channel names, case insensitivity and compound statement
+#write("OUTPUT0 0; output1 0")
+## instrument query
+temps = []
+try:
+    while (True):
+        for channel in range(0,4):
+            s = int(inst.query(f"MEAS:Stat{channel}?"))
+            if (s):
+                h = None
+            else:
+                entry = {}
+                entry["time"] = "{:%Y-%m-%d %H:%M:%S}".format(datetime.now())
+                entry["channel"] = channel
+                entry["raw"] = hex(int(inst.query(f"MEAS:RAW{channel}?")[2:],16))
+                entry["cold"] = float(inst.query(f"MEAS:Cold{channel}?"))
+                entry["hot"] = float(inst.query(f"MEAS:Temp{channel}?"))
+                print(f"raw:{entry['raw']}\tcold:{entry['cold']}\thot:{entry['hot']}")
+                temps.append(entry)
+        time.sleep(1)
+except KeyboardInterrupt:
+    pass
 
+time_str = "{:%Y-%m-%d %H:%M:%S}".format(datetime.now())
+filename = f"ptc0402k [{time_str}].json"
+
+with open(filename, 'w') as fout:
+    json.dump(temps, fout);
+
+print(f"Data saved to <{filename}>")
 #query("MEAS:STAT0?")
 #query("MEAS:COLD0?")
 

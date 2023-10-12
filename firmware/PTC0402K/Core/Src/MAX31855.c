@@ -60,8 +60,8 @@ void MAX31855_ProcessData (uint8_t * buffer) {
       tmp = 0xC000 | tmp;
     }
     fix16_t hotJunctTemp = hotJunctSlope * tmp;
-    devices[currentChannel].hotJunctTemp = hotJunctTemp;
-    //devices[currentChannel].hotJunctTemp = CompensateNIST(coldJunctTemp, hotJunctTemp);
+    //devices[currentChannel].hotJunctTemp = hotJunctTemp;
+    devices[currentChannel].hotJunctTemp = CompensateNIST(coldJunctTemp, hotJunctTemp);
   }
 }
 
@@ -109,7 +109,7 @@ fix16_t fix16_pow(fix16_t val, uint8_t exponent) {
 
 fix16_t CompensateNIST(fix16_t coldJunctTemp, fix16_t hotJunctTemp) {
   // the three polynomials below are for -200-0, 0-500 and 500-1372 degrees C
-  const float polynomial[][10] = {{
+  const fix16_t polynomial[][10] = {{
     F16(0.0000000E+00),   F16(2.5173462E+01),  
     F16(-1.1662878E+00),  F16(-1.0833638E+00), 
     F16(-8.9773540E-01),  F16(-3.7342377E-01), 
@@ -133,7 +133,7 @@ fix16_t CompensateNIST(fix16_t coldJunctTemp, fix16_t hotJunctTemp) {
   fix16_t hotJunctVoltage = fix16_mul(fix16_sub(hotJunctTemp, coldJunctTemp), F16(0.041276));
   fix16_t measuredVoltage = fix16_add(coldJunctVoltage, hotJunctVoltage);
 
-  uint8_t tempRange = hotJunctVoltage <= 0 ? 0 : hotJunctVoltage <= F16(20.644) ? 1 : 2;
+  uint8_t tempRange = measuredVoltage < 0 ? 0 : measuredVoltage < F16(20.644) ? 1 : 2;
 
   fix16_t compensatedTemp = F16(0);
   for (uint8_t term = 0; term < 10; term++) {
