@@ -1,6 +1,7 @@
 #include "MAX31855.h"
 #include <stdint.h>
 //#include <math.h>
+#include "compensation_table.h"
 #include "gpio.h"
 #include "fix16.h"
 
@@ -11,11 +12,13 @@ MAX31855_TypeDef devices[] = {
   {.port=CS3_GPIO_Port, .pin=CS3_Pin,}
 };
 
+fix16_t calibration_offset[] = {F16(-2.5), F16(-2.7), F16(-3.3), F16(-3.60)};
+
 fix16_t CompensateNIST(fix16_t coldJunctTemp, fix16_t hotJunctTemp);
 static uint8_t currentChannel = 0;
 
-const fix16_t coldJunctSlope = F16(0.0625);
-const fix16_t hotJunctSlope = F16(0.25);
+const fix16_t coldLSB = F16(0.0625);
+const fix16_t hotLSB = F16(0.25);
 
 uint8_t MAX31855_NextChannel() {
   currentChannel = (currentChannel + 1) % NUM_MAX31855_CHANNELS;
@@ -50,7 +53,7 @@ void MAX31855_ProcessData (uint8_t * buffer) {
   if (data & 0x0800) {
     tmp = 0xF800 | tmp; //sign extension
   }
-  fix16_t coldJunctTemp = coldJunctSlope * tmp; 
+  fix16_t coldJunctTemp = coldLSB * tmp;
   devices[currentChannel].coldJunctTemp = coldJunctTemp;
  
   if (devices[currentChannel].errorState == 0) {
@@ -58,9 +61,8 @@ void MAX31855_ProcessData (uint8_t * buffer) {
     tmp = data & 0x3FFF;
     if (data & 0x4000) {
       tmp = 0xC000 | tmp;
-    }
-    fix16_t hotJunctTemp = hotJunctSlope * tmp;
-    //devices[currentChannel].hotJunctTemp = hotJunctTemp;
+    }    
+    fix16_t hotJunctTemp = hotLSB * tmp;
     devices[currentChannel].hotJunctTemp = CompensateNIST(coldJunctTemp, hotJunctTemp);
   }
 }
@@ -93,57 +95,22 @@ fix16_t fix16_pow(fix16_t val, uint8_t exponent) {
 /* *
  * The MAX31855 uses a simple linear approximation to convert thermocouple voltage to 
  * temperature. This is reasonably accurate in the range 0-300 degrees C but is very 
- * inaccurate for negative temperatures and above 500C. To correct for this we can use the 
- * published linear approximations for both the hot and cold junctions to calculate the 
- * actual thermocouple junction voltages and then apply the NIST polynomials which give 
- * an ~+/-0.05 degree C error. In practise this error will be swamped ADC quantisation 
- * errors.
- * TODO:
- * This could alternatively be achieved by calculating the errors and applying a PWL 
- * adjustment factor which would use less resource than calculating powers.
- * TODO:
- * There is an unexpected discontinuity when hotJunctTemp == coldJunctTemp (i.e. between
- * the top of polynomial 0 and the bottom of polynomial 1) which causes an obvious error 
- * when the measured temp is near the coldJunctTemp.  
+ * inaccurate for negative temperatures and above 500C. To correct for this we can use
+ * the published NIST polynomial curves which have been encoded into 
+ * compensation_tables.h. We use linear interpolation to keep the table size reasonable.
  * */
-
 fix16_t CompensateNIST(fix16_t coldJunctTemp, fix16_t hotJunctTemp) {
-  // the three polynomials below are for -200-0, 0-500 and 500-1372 degrees C
-  const fix16_t polynomial[][10] = {{
-    F16(0.0000000E+00),   F16(2.5173462E+01),  
-    F16(-1.1662878E+00),  F16(-1.0833638E+00), 
-    F16(-8.9773540E-01),  F16(-3.7342377E-01), 
-    F16(-8.6632643E-02),  F16(-1.0450598E-02), 
-    F16(-5.1920577E-04),  F16(0.0000000E+00)
-  },{
-    F16(0.000000E+00),    F16(2.508355E+01), 
-    F16(7.860106E-02),    F16(-2.503131E-01),
-    F16(8.315270E-02),    F16(-1.228034E-02),  
-    F16(9.804036E-04),    F16(-4.413030E-05),  
-    F16(1.057734E-06),    F16(-1.052755E-08)
-  },{
-    F16(-1.318058E+02),   F16(4.830222E+01),   
-    F16(-1.646031E+00),   F16(5.464731E-02),
-    F16(-9.650715E-04),   F16(8.802193E-06),
-    F16(-3.110810E-08),   F16(0.000000E+00),
-    F16(0.000000E+00),    F16(0.000000E+00)
-  }};
-
   fix16_t coldJunctVoltage = fix16_mul(coldJunctTemp, F16(0.04073));
   fix16_t hotJunctVoltage = fix16_mul(fix16_sub(hotJunctTemp, coldJunctTemp), F16(0.041276));
   fix16_t measuredVoltage = fix16_add(coldJunctVoltage, hotJunctVoltage);
 
-  uint8_t tempRange = measuredVoltage < 0 ? 0 : measuredVoltage < F16(20.644) ? 1 : 2;
+  fix16_t table_pos = fix16_mul(F16(10.0), fix16_sub(measuredVoltage, F16(-7.0)));
+  uint16_t lower_pos = fix16_to_int(fix16_sub(table_pos, F16(0.5)));
+  uint16_t upper_pos = fix16_to_int(fix16_add(table_pos, F16(0.5)));
+  fix16_t span = fix16_sub(temperatures[upper_pos], temperatures[lower_pos]);
+  fix16_t mantissa = fix16_sub(table_pos, F16(lower_pos));
 
-  fix16_t compensatedTemp = F16(0);
-  for (uint8_t term = 0; term < 10; term++) {
-    compensatedTemp = fix16_add(
-      compensatedTemp, 
-      fix16_mul(polynomial[tempRange][term], fix16_pow(measuredVoltage, term))
-    );  
-  }
-
+  fix16_t compensatedTemp = fix16_add(temperatures[lower_pos], fix16_mul(span, mantissa));
   return compensatedTemp;
 }
-
 

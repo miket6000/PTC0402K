@@ -47,7 +47,7 @@ static scpi_result_t GetColdJunct(scpi_t * context) {
   int32_t channel;
   char buffer[SIZE_OF_FLOAT_TO_STR_BUFFER];
   SCPI_CommandNumbers(context, &channel, 1, 0);
-  fix16_to_str(MAX31855_GetColdTemp((uint8_t)channel), buffer, 4);
+  fix16_to_str(MAX31855_GetColdTemp((uint8_t)channel), buffer, 1);
   SCPI_ResultCharacters(context, buffer, strlen(buffer));
   return SCPI_RES_OK;
 }
@@ -56,7 +56,7 @@ static scpi_result_t GetHotJunct(scpi_t * context) {
   int32_t channel;
   char buffer[SIZE_OF_FLOAT_TO_STR_BUFFER];
   SCPI_CommandNumbers(context, &channel, 1, 0);
-  fix16_to_str(MAX31855_GetHotTemp((uint8_t)channel), buffer, 2);
+  fix16_to_str(MAX31855_GetHotTemp((uint8_t)channel), buffer, 1);
   SCPI_ResultCharacters(context, buffer, strlen(buffer));
   return SCPI_RES_OK;
 }
