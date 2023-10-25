@@ -35,7 +35,6 @@ BUILD_DIR = build
 # source
 ######################################
 # C sources
-# Core/Src/scpi-com.c
 
 C_SOURCES =  \
 Core/Src/main.c \
@@ -200,7 +199,7 @@ vpath %.c $(sort $(dir $(C_SOURCES)))
 OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(ASM_SOURCES:.s=.o)))
 vpath %.s $(sort $(dir $(ASM_SOURCES)))
 
-$(BUILD_DIR)/%.o: %.c Makefile | $(BUILD_DIR) 
+$(BUILD_DIR)/%.o: %.c Makefile table | $(BUILD_DIR) 
 	$(CC) -c $(CFLAGS) -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.c=.lst)) $< -o $@
 
 $(BUILD_DIR)/%.o: %.s Makefile | $(BUILD_DIR)
@@ -225,10 +224,14 @@ $(BUILD_DIR):
 clean:
 	-rm -fR $(BUILD_DIR)
   
-
 flash:
 	st-flash write $(BUILD_DIR)/$(TARGET).bin 0x08000000
 
+tools: $(BUILD_DIR)
+	gcc -O2 -pipe $(C_INCLUDES) utils/buildtable.c -o $(BUILD_DIR)/buildtable -lm -s -L ./ -I ./
+
+table: tools
+	$(BUILD_DIR)/buildtable > Core/Inc/NIST.h
 #######################################
 # dependencies
 #######################################

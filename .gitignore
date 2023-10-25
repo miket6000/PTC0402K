@@ -8,4 +8,5 @@ production
 _autosave*
 *.bak
 *.json
+*.csv
 build/

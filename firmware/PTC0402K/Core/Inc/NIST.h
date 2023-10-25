@@ -1,15 +1,14 @@
-#ifndef COMPENSATION_TABLE_H
-#define COMPENSATION_TABLE_H
+#ifndef NIST_H
+#define NIST_H
 
 #include "fix16.h"
 
-// Table temperatures run from -7.00mV to 56.00mV in 0.10mV steps
-static const fix16_t temperatures[]={
-0xFEC00EA0, /* -7.00mV = -319.94 degrees C */
-0xFED134BB, /* -6.90mV = -302.79 degrees C */
-0xFEE08B1C, /* -6.80mV = -287.46 degrees C */
-0xFEEE4CCE, /* -6.70mV = -273.70 degrees C */
-0xFEFAAE1C, /* -6.60mV = -261.32 degrees C */
+#define LOOKUP_VMIN 0xFFF98000    /* -6.50mV */
+#define LOOKUP_VMAX 0x00380000    /* 56.00mV */
+#define LOOKUP_VSTEP 0x0000199A   /* 0.10mV */
+
+// Table temperatures run from -6.50mV to 56.00mV in 0.10mV steps
+fix16_t temperatures[]={
 0xFF05DD31, /* -6.50mV = -250.14 degrees C */
 0xFF1002B2, /* -6.40mV = -239.99 degrees C */
 0xFF194248, /* -6.30mV = -230.74 degrees C */
@@ -636,4 +635,4 @@ static const fix16_t temperatures[]={
 0x05775571, /* 55.80mV = 1399.33 degrees C */
 0x057A5800, /* 55.90mV = 1402.34 degrees C */
 };
-#endif //COMPENSTATION_TABLE_H
+#endif //NIST_H
