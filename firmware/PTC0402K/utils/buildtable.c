@@ -106,7 +106,7 @@ int main (void)
 
   printf("#define LOOKUP_VMIN 0x%08X    /* %.2fmV */\n", F16(vMin), vMin);
   printf("#define LOOKUP_VMAX 0x%08X    /* %.2fmV */\n", F16(vMax), vMax);
-  printf("#define LOOKUP_VSTEP 0x%08X   /* %.2fmV */\n\n", F16(vInc), vInc);
+  printf("#define LOOKUP_VSTEP 0x%08X   /* %.2fmV */\n\n", F16(1/vInc), vInc);
 
   printf("// Table temperatures run from %.2fmV to %.2fmV in %.2fmV steps\n", vMin, vMax, vInc);
   printf("fix16_t temperatures[]={\n");

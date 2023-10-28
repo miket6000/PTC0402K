@@ -9,17 +9,16 @@
 #define COLD_LSB F16(0.0625)
 #define HOT_LSB F16(0.25)
 
+fix16_t CompensateNIST(fix16_t coldJunctTemp, fix16_t hotJunctTemp);
+
 MAX31855_TypeDef devices[] = {
-  {.port=CS0_GPIO_Port, .pin=CS0_Pin,}, 
-  {.port=CS1_GPIO_Port, .pin=CS1_Pin,}, 
-  {.port=CS2_GPIO_Port, .pin=CS2_Pin,}, 
-  {.port=CS3_GPIO_Port, .pin=CS3_Pin,}
+  {.port=CS0_GPIO_Port, .pin=CS0_Pin, .offset=F16(-2.5)}, 
+  {.port=CS1_GPIO_Port, .pin=CS1_Pin, .offset=F16(-2.8)}, 
+  {.port=CS2_GPIO_Port, .pin=CS2_Pin, .offset=F16(-3.3)}, 
+  {.port=CS3_GPIO_Port, .pin=CS3_Pin, .offset=F16(-3.0)}
 };
 
-fix16_t CompensateNIST(fix16_t coldJunctTemp, fix16_t hotJunctTemp);
 static uint8_t currentChannel = 0;
-
-fix16_t calibration_offset[] = {F16(-2.5), F16(-2.7), F16(-3.3), F16(-3.60)};
 
 uint8_t MAX31855_NextChannel() {
   currentChannel = (currentChannel + 1) % NUM_MAX31855_CHANNELS;
@@ -64,8 +63,8 @@ void MAX31855_ProcessData (uint8_t * buffer) {
     if (data & 0x4000) {
       tmp = 0xC000 | tmp; // more sign extension
     }    
-    fix16_t hotJunctTemp = HOT_LSB * tmp;
-    devices[currentChannel].hotJunctTemp = CompensateNIST(coldJunctTemp, hotJunctTemp);
+    fix16_t hotJunctTemp = CompensateNIST(coldJunctTemp, HOT_LSB * tmp);
+    devices[currentChannel].hotJunctTemp = fix16_add(hotJunctTemp, devices[currentChannel].offset); 
   }
 }
 
@@ -95,9 +94,9 @@ uint32_t MAX31855_GetRawData(uint8_t channel) {
 fix16_t CompensateNIST(fix16_t coldJunctTemp, fix16_t hotJunctTemp) {
   fix16_t coldJunctVoltage = fix16_mul(coldJunctTemp, COLD_JUNCTION_SENSITIVITY);
   fix16_t hotJunctVoltage = fix16_mul(fix16_sub(hotJunctTemp, coldJunctTemp), HOT_JUNCTION_SENSITIVITY);
-  fix16_t measuredVoltage = fix16_add(coldJunctVoltage, hotJunctVoltage);
+  fix16_t summedVoltage = fix16_add(coldJunctVoltage, hotJunctVoltage);
   
-  fix16_t table_pos = fix16_mul(LOOKUP_VSTEP, fix16_sub(measuredVoltage, LOOKUP_VMIN)); 
+  fix16_t table_pos = fix16_mul(LOOKUP_VSTEP, fix16_sub(summedVoltage, LOOKUP_VMIN)); 
   uint16_t lower_pos = fix16_to_int(fix16_sub(table_pos, F16(0.5)));
   uint16_t upper_pos = fix16_to_int(fix16_add(table_pos, F16(0.5)));
   fix16_t span = fix16_sub(temperatures[upper_pos], temperatures[lower_pos]);

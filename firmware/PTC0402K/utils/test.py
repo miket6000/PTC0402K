@@ -35,7 +35,7 @@ try:
             s = int(inst.query(f"MEAS:Stat{channel}?"))
             entry[f"raw ({channel})"] = hex(int(inst.query(f"MEAS:RAW{channel}?")[2:],16))
             entry[f"cold ({channel})"] = float(inst.query(f"MEAS:Cold{channel}?"))
-            entry[f"hot ({channel})"] = float(inst.query(f"MEAS:Temp{channel}?"))
+            entry[f"hot ({channel})"] = float(inst.query(f"MEAS:Temp{channel}?")) if not s else "-"
         temps.append(entry)
         print(f"0: cold {entry['cold (0)']}\thot {entry['hot (0)']}")
         print(f"1: cold {entry['cold (1)']}\thot {entry['hot (1)']}")

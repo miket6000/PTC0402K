@@ -5,7 +5,7 @@
 
 #define LOOKUP_VMIN 0xFFF98000    /* -6.50mV */
 #define LOOKUP_VMAX 0x00380000    /* 56.00mV */
-#define LOOKUP_VSTEP 0x0000199A   /* 0.10mV */
+#define LOOKUP_VSTEP 0x000A0000   /* 0.10mV */
 
 // Table temperatures run from -6.50mV to 56.00mV in 0.10mV steps
 fix16_t temperatures[]={

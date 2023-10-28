@@ -7,18 +7,13 @@
 
 #define NUM_MAX31855_CHANNELS 4
 
-#define FXP_SCALE (2 << 30)
-#define FXP(x) ((int64_t)(x * FXP_SCALE))
-#define FXP_WHOLE(x) ((int32_t)(x / FXP_SCALE))
-#define FXP_FRACT(x) ((int32_t)(x - ((int32_t)(x / FXP_SCALE) * FXP_SCALE)))
-#define FXP_T  int64_t
-
 typedef struct {
   GPIO_TypeDef *  port;
   uint8_t         pin;
   uint32_t        rawData;
   fix16_t         hotJunctTemp;
   fix16_t         coldJunctTemp;
+  fix16_t         offset;
   uint8_t         errorState;
 } MAX31855_TypeDef;
 
