@@ -44,6 +44,7 @@ Core/Src/scpi-com.c \
 Core/Src/led.c \
 Core/Src/MAX31855.c \
 Core/Src/relay.c \
+Core/Src/bangbang.c \
 Core/Src/stm32f0xx_it.c \
 Core/Src/stm32f0xx_hal_msp.c \
 Core/Src/system_stm32f0xx.c \

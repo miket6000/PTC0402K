@@ -31,6 +31,7 @@
 #include "scpi/scpi.h"
 #include "scpi-def.h"
 #include "MAX31855.h"
+#include "bangbang.h"
 #include "fix16.h"
 #include "relay.h"
 
@@ -68,12 +69,64 @@ static scpi_result_t GetRawData(scpi_t * context) {
   return SCPI_RES_OK;
 }
 
+static scpi_result_t GetAlarmConfig(scpi_t * context) {
+  SCPI_ResultUInt32Base(context, BangBang_GetConfigBits(), 0x10);
+  return SCPI_RES_OK;
+}
 
-static scpi_result_t SetAlarmEnable(scpi_t * context) {return SCPI_RES_OK;}
+static scpi_result_t SetAlarmEnable(scpi_t * context) {
+  uint32_t param;
+
+  if (!SCPI_ParamUnsignedInt(context, &param, TRUE)) {
+    return SCPI_RES_ERR;
+  }
+
+  if (param) {
+    BangBang_Enable();
+  } else {
+    BangBang_Disable();
+  }
+
+  return SCPI_RES_OK;
+}
+
 static scpi_result_t SetAlarmEvent(scpi_t * context) {return SCPI_RES_OK;}
-static scpi_result_t SetAlarmLimit(scpi_t * context) {return SCPI_RES_OK;}
-static scpi_result_t SetAlarmInput(scpi_t * context) {return SCPI_RES_OK;}
-static scpi_result_t SetAlarmOutput(scpi_t * context) {return SCPI_RES_OK;}
+static scpi_result_t SetAlarmLimit(scpi_t * context) {
+  const char * param;
+  char buffer[16];
+  size_t param_len;
+
+  if (!SCPI_ParamCharacters(context, &param, &param_len, TRUE)) {
+    return SCPI_RES_ERR;
+  }
+  
+  memcpy(buffer, param, param_len);
+
+  BangBang_SetTarget(fix16_from_str(buffer));
+  return SCPI_RES_OK;
+}
+
+static scpi_result_t SetAlarmInput(scpi_t * context) {
+  uint32_t param;
+
+  if (!SCPI_ParamUnsignedInt(context, &param, TRUE)) {
+    return SCPI_RES_ERR;
+  }
+
+  BangBang_SetControlChannel((uint8_t)param);
+  return SCPI_RES_OK;
+}
+
+static scpi_result_t SetAlarmOutput(scpi_t * context) {  
+  uint32_t param;
+
+  if (!SCPI_ParamUnsignedInt(context, &param, TRUE)) {
+    return SCPI_RES_ERR;
+  }
+
+  BangBang_SetOutputChannel((uint8_t)param);
+  return SCPI_RES_OK;
+}
 
 static scpi_result_t SetOutput(scpi_t * context) {
   int32_t channel;
@@ -89,11 +142,31 @@ static scpi_result_t SetOutput(scpi_t * context) {
   return SCPI_RES_OK;
 }
 
-static scpi_result_t GetAlarmEnable(scpi_t * context) {return SCPI_RES_OK;}
-static scpi_result_t GetAlarmEvent(scpi_t * context) {return SCPI_RES_OK;}
-static scpi_result_t GetAlarmLimit(scpi_t * context) {return SCPI_RES_OK;}
-static scpi_result_t GetAlarmInput(scpi_t * context) {return SCPI_RES_OK;}
-static scpi_result_t GetAlarmOutput(scpi_t * context) {return SCPI_RES_OK;}
+static scpi_result_t GetAlarmEnable(scpi_t * context) {
+  SCPI_ResultUInt32(context, BangBang_GetEnable());
+  return SCPI_RES_OK;
+}
+
+static scpi_result_t GetAlarmEvent(scpi_t * context) {
+  return SCPI_RES_OK;
+}
+
+static scpi_result_t GetAlarmLimit(scpi_t * context) {
+  char buffer[SIZE_OF_FLOAT_TO_STR_BUFFER];
+  fix16_to_str(BangBang_GetTarget(), buffer, 2);
+  SCPI_ResultCharacters(context, buffer, strlen(buffer));
+  return SCPI_RES_OK;
+}
+
+static scpi_result_t GetAlarmInput(scpi_t * context) {
+  SCPI_ResultUInt32(context, BangBang_GetControlChannel());
+  return SCPI_RES_OK;
+}
+
+static scpi_result_t GetAlarmOutput(scpi_t * context) {
+  SCPI_ResultUInt32(context, BangBang_GetOutputChannel());
+  return SCPI_RES_OK;
+}
 
 static scpi_result_t GetOutput(scpi_t * context) {
   int32_t channel;
@@ -151,16 +224,17 @@ const scpi_command_t scpi_commands[] = {
     /* ALARM0:INPUt 0; OUTPut 0; EVENt OVER; ACTIon OFF; LIMIt 99.0; ENABle 1*/
     /* ALARM1:INPUt 0; OUTPut 0; EVENt UNDEr; ACTIon ON; LIMIt 98.0; ENABle 1*/
 
-    {.pattern = "[CONFigure:]ALARm#:ENABle", .callback = SetAlarmEnable,},
-    {.pattern = "[CONFigure:]ALARm#:ENABle?", .callback = GetAlarmEnable,},
-    {.pattern = "[CONFigure:]ALARm#:INPUt", .callback = SetAlarmInput,},
-    {.pattern = "[CONFigure:]ALARm#:INPUt?", .callback = GetAlarmInput,},
-    {.pattern = "[CONFigure:]ALARm#:OUTPut", .callback = SetAlarmOutput,},
-    {.pattern = "[CONFigure:]ALARm#:OUTPut?", .callback = GetAlarmOutput,},
-    {.pattern = "[CONFigure:]ALARm#:EVENt", .callback = SetAlarmEvent,},
-    {.pattern = "[CONFigure:]ALARm#:EVENt?", .callback = GetAlarmEvent,},
-    {.pattern = "[CONFigure:]ALARm#:LIMIt", .callback = SetAlarmLimit,},
-    {.pattern = "[CONFigure:]ALARm#:LIMIt?", .callback = GetAlarmLimit,},
+    {.pattern = "ALARm:CONFig?", .callback = GetAlarmConfig,},
+    {.pattern = "ALARm:ENABle", .callback = SetAlarmEnable,},
+    {.pattern = "ALARm:ENABle?", .callback = GetAlarmEnable,},
+    {.pattern = "ALARm:INPUt", .callback = SetAlarmInput,},
+    {.pattern = "ALARm:INPUt?", .callback = GetAlarmInput,},
+    {.pattern = "ALARm:OUTPut", .callback = SetAlarmOutput,},
+    {.pattern = "ALARm:OUTPut?", .callback = GetAlarmOutput,},
+    {.pattern = "ALARm:EVENt", .callback = SetAlarmEvent,},
+    {.pattern = "ALARm:EVENt?", .callback = GetAlarmEvent,},
+    {.pattern = "ALARm:LIMIt", .callback = SetAlarmLimit,},
+    {.pattern = "ALARm:LIMIt?", .callback = GetAlarmLimit,},
 
     {.pattern = "OUTPut#", .callback = SetOutput,},
     {.pattern = "OUTPut#?", .callback = GetOutput,},

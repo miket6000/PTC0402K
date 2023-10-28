@@ -7,6 +7,8 @@ from datetime import datetime
 
 rm = pyvisa.ResourceManager("@py")
 inst = rm.open_resource('ASRL/dev/ttyACM0::INSTR')
+inst.write_termination = '\r\n'
+inst.read_termination = '\r\n'
 
 def query(queryString):
     result = inst.query(queryString)
@@ -17,15 +19,24 @@ def write(string):
     inst.write(string)
     print(string, "\n")
 
-# basic query
+# Reset and clear state. Resetting sometimes causes garbage characters to be transmitted
+# so we read any characters in the buffer and continue.
+inst.query("*RST")
+try:
+    inst.timeout = 10
+    inst.read_raw()
+except:
+    pass
+inst.timeout = 1000
+inst.write("*CLS")
 query("*IDN?")
-## infered output channel and write
-#write("OUTP 1")
-## explict output channel and write
-#write("OUTP1 1")
-## full form channel names, case insensitivity and compound statement
-#write("OUTPUT0 0; output1 0")
-## instrument query
+
+# setup a temp controller. You must set a limit, an output and an input BEFORE you enable.
+inst.write("Alarm:Limit 20.0; output 1; input 2; enable 1")
+
+# loop forever reading out all four channels. If we're interrupted by the keyboard record
+# the data in a CSV file. This is not a robust way of doing this as nothing is written
+# to file until the code is interrupted. We should periodically save data instead...
 temps = []
 try:
     while (True):
@@ -46,13 +57,13 @@ try:
 except KeyboardInterrupt:
     pass
 
+rm.close()
 time_str = "{:%Y-%m-%d %H:%M:%S}".format(datetime.now())
 filename = f"ptc0402k [{time_str}].csv"
 
 with open(filename, 'w', newline='') as fout:
-    #json.dump(temps, fout);
     w = csv.DictWriter(fout, temps[0].keys())
     w.writeheader()
     w.writerows(temps)
 
-print(f"Data saved to <{filename}>")
+print(f"\nData saved to <{filename}>")

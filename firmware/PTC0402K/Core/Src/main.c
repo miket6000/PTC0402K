@@ -29,6 +29,7 @@
 #include "led.h"
 #include "usbd_cdc_if.h"
 #include "MAX31855.h"
+#include "bangbang.h"
 #include "scpi/scpi.h"
 #include "scpi-def.h"
 /* USER CODE END Includes */
@@ -119,7 +120,6 @@ int main(void)
             scpi_input_buffer, SCPI_INPUT_BUFFER_LENGTH,
             scpi_error_queue_data, SCPI_ERROR_QUEUE_SIZE);
   
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -190,6 +190,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   // Timer14 triggers every 100ms
   if (htim->Instance == htim14.Instance)
   {
+    BangBang_Update();
     MAX31855_InitiateTransfer();
     HAL_SPI_Receive_DMA(&hspi1, spiRxBuffer, 4);
   }
