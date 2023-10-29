@@ -69,12 +69,12 @@ static scpi_result_t GetRawData(scpi_t * context) {
   return SCPI_RES_OK;
 }
 
-static scpi_result_t GetAlarmConfig(scpi_t * context) {
-  SCPI_ResultUInt32Base(context, BangBang_GetConfigBits(), 0x10);
+static scpi_result_t GetControllerConfig(scpi_t * context) {
+  SCPI_ResultUInt32Base(context, BangBang_GetSetBits(), 0x10);
   return SCPI_RES_OK;
 }
 
-static scpi_result_t SetAlarmEnable(scpi_t * context) {
+static scpi_result_t SetControllerEnable(scpi_t * context) {
   uint32_t param;
 
   if (!SCPI_ParamUnsignedInt(context, &param, TRUE)) {
@@ -90,8 +90,7 @@ static scpi_result_t SetAlarmEnable(scpi_t * context) {
   return SCPI_RES_OK;
 }
 
-static scpi_result_t SetAlarmEvent(scpi_t * context) {return SCPI_RES_OK;}
-static scpi_result_t SetAlarmLimit(scpi_t * context) {
+static scpi_result_t SetControllerTarget(scpi_t * context) {
   const char * param;
   char buffer[16];
   size_t param_len;
@@ -99,25 +98,30 @@ static scpi_result_t SetAlarmLimit(scpi_t * context) {
   if (!SCPI_ParamCharacters(context, &param, &param_len, TRUE)) {
     return SCPI_RES_ERR;
   }
-  
-  memcpy(buffer, param, param_len);
+
+  uint8_t i = 0;
+  while (param[i] != '\0' && param[i] != ';' && i < sizeof(buffer)) {
+    buffer[i] = param[i];
+    i++;
+  }
+  buffer[i] = '\0';
 
   BangBang_SetTarget(fix16_from_str(buffer));
   return SCPI_RES_OK;
 }
 
-static scpi_result_t SetAlarmInput(scpi_t * context) {
+static scpi_result_t SetControllerInput(scpi_t * context) {
   uint32_t param;
 
   if (!SCPI_ParamUnsignedInt(context, &param, TRUE)) {
     return SCPI_RES_ERR;
   }
 
-  BangBang_SetControlChannel((uint8_t)param);
+  BangBang_SetInputChannel((uint8_t)param);
   return SCPI_RES_OK;
 }
 
-static scpi_result_t SetAlarmOutput(scpi_t * context) {  
+static scpi_result_t SetControllerOutput(scpi_t * context) {  
   uint32_t param;
 
   if (!SCPI_ParamUnsignedInt(context, &param, TRUE)) {
@@ -127,6 +131,18 @@ static scpi_result_t SetAlarmOutput(scpi_t * context) {
   BangBang_SetOutputChannel((uint8_t)param);
   return SCPI_RES_OK;
 }
+
+static scpi_result_t SetControllerInvert(scpi_t * context) {  
+  uint32_t param;
+
+  if (!SCPI_ParamUnsignedInt(context, &param, TRUE)) {
+    return SCPI_RES_ERR;
+  }
+
+  BangBang_SetOutputInvert((uint8_t)param);
+  return SCPI_RES_OK;
+}
+
 
 static scpi_result_t SetOutput(scpi_t * context) {
   int32_t channel;
@@ -142,29 +158,30 @@ static scpi_result_t SetOutput(scpi_t * context) {
   return SCPI_RES_OK;
 }
 
-static scpi_result_t GetAlarmEnable(scpi_t * context) {
+static scpi_result_t GetControllerEnable(scpi_t * context) {
   SCPI_ResultUInt32(context, BangBang_GetEnable());
   return SCPI_RES_OK;
 }
 
-static scpi_result_t GetAlarmEvent(scpi_t * context) {
-  return SCPI_RES_OK;
-}
-
-static scpi_result_t GetAlarmLimit(scpi_t * context) {
+static scpi_result_t GetControllerTarget(scpi_t * context) {
   char buffer[SIZE_OF_FLOAT_TO_STR_BUFFER];
   fix16_to_str(BangBang_GetTarget(), buffer, 2);
   SCPI_ResultCharacters(context, buffer, strlen(buffer));
   return SCPI_RES_OK;
 }
 
-static scpi_result_t GetAlarmInput(scpi_t * context) {
-  SCPI_ResultUInt32(context, BangBang_GetControlChannel());
+static scpi_result_t GetControllerInput(scpi_t * context) {
+  SCPI_ResultUInt32(context, BangBang_GetInputChannel());
   return SCPI_RES_OK;
 }
 
-static scpi_result_t GetAlarmOutput(scpi_t * context) {
+static scpi_result_t GetControllerOutput(scpi_t * context) {
   SCPI_ResultUInt32(context, BangBang_GetOutputChannel());
+  return SCPI_RES_OK;
+}
+
+static scpi_result_t GetControllerInvert(scpi_t * context) {
+  SCPI_ResultUInt32(context, BangBang_GetOutputInvert());
   return SCPI_RES_OK;
 }
 
@@ -211,30 +228,24 @@ const scpi_command_t scpi_commands[] = {
     {.pattern = "SYSTem:ERRor:COUNt?", .callback = SCPI_SystemErrorCountQ,},
     {.pattern = "SYSTem:VERSion?", .callback = SCPI_SystemVersionQ,},
 
+    /* Measurement of temperature and MAX31855 state variables */
     {.pattern = "MEASure:TEMPerature#?", .callback = GetHotJunct,},
     {.pattern = "MEASure:COLDjunction#?", .callback = GetColdJunct,},
     {.pattern = "MEASure:STATe#?", .callback = GetErrorState,},
     {.pattern = "MEASure:RAW#?", .callback = GetRawData,},
     
-    /* Alarms will change an output state when the temperature exceeds (OVERTEMP) or 
-     * drops below (UNDERTEMP) the alarm temp. This change is one way, however a second 
-     * alarm can be used to 
-     * create a temperature controller by using a second alarm */
-
-    /* ALARM0:INPUt 0; OUTPut 0; EVENt OVER; ACTIon OFF; LIMIt 99.0; ENABle 1*/
-    /* ALARM1:INPUt 0; OUTPut 0; EVENt UNDEr; ACTIon ON; LIMIt 98.0; ENABle 1*/
-
-    {.pattern = "ALARm:CONFig?", .callback = GetAlarmConfig,},
-    {.pattern = "ALARm:ENABle", .callback = SetAlarmEnable,},
-    {.pattern = "ALARm:ENABle?", .callback = GetAlarmEnable,},
-    {.pattern = "ALARm:INPUt", .callback = SetAlarmInput,},
-    {.pattern = "ALARm:INPUt?", .callback = GetAlarmInput,},
-    {.pattern = "ALARm:OUTPut", .callback = SetAlarmOutput,},
-    {.pattern = "ALARm:OUTPut?", .callback = GetAlarmOutput,},
-    {.pattern = "ALARm:EVENt", .callback = SetAlarmEvent,},
-    {.pattern = "ALARm:EVENt?", .callback = GetAlarmEvent,},
-    {.pattern = "ALARm:LIMIt", .callback = SetAlarmLimit,},
-    {.pattern = "ALARm:LIMIt?", .callback = GetAlarmLimit,},
+    /* Temperature controller configuration (bangbang only at this stage) */
+    {.pattern = "CONTroller:CONFig?", .callback = GetControllerConfig,},
+    {.pattern = "CONTroller:ENABle", .callback = SetControllerEnable,},
+    {.pattern = "CONTroller:ENABle?", .callback = GetControllerEnable,},
+    {.pattern = "CONTroller:INPUt", .callback = SetControllerInput,},
+    {.pattern = "CONTroller:INPUt?", .callback = GetControllerInput,},
+    {.pattern = "CONTroller:OUTPut", .callback = SetControllerOutput,},
+    {.pattern = "CONTroller:OUTPut?", .callback = GetControllerOutput,},
+    {.pattern = "CONTroller:INVErt", .callback = SetControllerInvert,},
+    {.pattern = "CONTroller:INVErt?", .callback = GetControllerInvert,},
+    {.pattern = "CONTroller:TARGet", .callback = SetControllerTarget,},
+    {.pattern = "CONTroller:TARGet?", .callback = GetControllerTarget,},
 
     {.pattern = "OUTPut#", .callback = SetOutput,},
     {.pattern = "OUTPut#?", .callback = GetOutput,},

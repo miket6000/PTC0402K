@@ -24,7 +24,7 @@ def write(string):
 inst.query("*RST")
 try:
     inst.timeout = 10
-    inst.read_raw()
+    inst.read_bytes(100)
 except:
     pass
 inst.timeout = 1000
@@ -32,7 +32,11 @@ inst.write("*CLS")
 query("*IDN?")
 
 # setup a temp controller. You must set a limit, an output and an input BEFORE you enable.
-inst.write("Alarm:Limit 20.0; output 1; input 2; enable 1")
+inst.write("Controller:target 20.0;output 0; input 0; invert 1; enable 1")
+print("target:",inst.query("Controller:target?"))
+print("input:",inst.query("Controller:input?"))
+print("output:",inst.query("Controller:output?"))
+
 
 # loop forever reading out all four channels. If we're interrupted by the keyboard record
 # the data in a CSV file. This is not a robust way of doing this as nothing is written
