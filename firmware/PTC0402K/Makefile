@@ -30,7 +30,7 @@ OPT = -Og
 #######################################
 # Build path
 BUILD_DIR = build
-INC_DIR = Core/Inc
+
 ######################################
 # source
 ######################################
@@ -142,12 +142,12 @@ C_DEFS =  \
 -DUSE_HAL_DRIVER \
 -DSTM32F072xB
 
-
 # AS includes
 AS_INCLUDES = 
 
 # C includes
 C_INCLUDES =  \
+-Ibuild \
 -ICore/Inc \
 -Ilibscpi/inc \
 -IDrivers/STM32F0xx_HAL_Driver/Inc \
@@ -199,7 +199,11 @@ vpath %.c $(sort $(dir $(C_SOURCES)))
 OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(ASM_SOURCES:.s=.o)))
 vpath %.s $(sort $(dir $(ASM_SOURCES)))
 
-$(BUILD_DIR)/%.o: %.c Makefile Core/Inc/NIST.h | $(BUILD_DIR) 
+$(BUILD_DIR)/NIST.h: | $(BUILD_DIR)
+	gcc -O2 -pipe $(C_INCLUDES) utils/buildtable.c -o $(BUILD_DIR)/buildtable -lm
+	$(BUILD_DIR)/buildtable > $@
+
+$(BUILD_DIR)/%.o: %.c Makefile $(BUILD_DIR)/NIST.h | $(BUILD_DIR) 
 	$(CC) -c $(CFLAGS) -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.c=.lst)) $< -o $@
 
 $(BUILD_DIR)/%.o: %.s Makefile | $(BUILD_DIR)
@@ -219,17 +223,13 @@ $(BUILD_DIR):
 	mkdir $@		
 
 #######################################
-# clean up
+# phony helper targets
 #######################################
 clean:
 	-rm -fR $(BUILD_DIR)
   
 flash:
 	st-flash write $(BUILD_DIR)/$(TARGET).bin 0x08000000
-
-$(INC_DIR)/NIST.h: $(BUILD_DIR)
-	gcc -O2 -pipe $(C_INCLUDES) utils/buildtable.c -o $(BUILD_DIR)/buildtable -lm
-	$(BUILD_DIR)/buildtable > $@
 
 #######################################
 # dependencies
